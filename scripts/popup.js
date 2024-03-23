@@ -29,6 +29,20 @@ document.addEventListener('DOMContentLoaded', function() {
     submitButton.textContent = buttonText;
   }
 
+  function getUnselectedServerNames(serverNames) {
+    return chrome.tabs.query({active: true, currentWindow: true})
+      .then(tabs => {
+        return chrome.tabs.sendMessage(tabs[0].id, {action: "getSelectedServers"});
+      })
+      .then(response => {
+        if (response && response.selectedServers) {
+          return serverNames.filter(name => !response.selectedServers.includes(name));
+        } else {
+          return serverNames;
+        }
+      });
+  }
+
   updateSubmitButtonText();
 
   serverNamesTextarea.addEventListener('input', updateSubmitButtonText);
@@ -47,13 +61,24 @@ document.addEventListener('DOMContentLoaded', function() {
   submitButton.addEventListener("click", function() {
     const serverNamesInput = serverNamesTextarea.value;
     const serverNames = serverNamesInput.split('\n').map(name => name.trim()).filter(name => name.length > 0);
+  
     chrome.tabs.query({active: true, currentWindow: true})
       .then(tabs => {
-        chrome.tabs.sendMessage(tabs[0].id, {action: "selectServers", serverNames: serverNames}).then(() => {
-          chrome.tabs.sendMessage(tabs[0].id, {action: "scrollToLastOption"});
-        }).then(() => {
-          window.close();
-        });
+        return chrome.tabs.sendMessage(tabs[0].id, {action: "selectServers", serverNames: serverNames})
+          .then(() => {
+            return chrome.tabs.sendMessage(tabs[0].id, {action: "scrollToLastOption"});
+          })
+          .then(() => {
+            return getUnselectedServerNames(serverNames);
+          })
+          .then(unselectedServerNames => {
+            if (unselectedServerNames.length > 0) {
+              alert(chrome.i18n.getMessage("unselectedServers") + "\n\n" + unselectedServerNames.join('\n'));
+            }
+          })
+          .then(() => {
+            window.close();
+          });
       });
   });
 });

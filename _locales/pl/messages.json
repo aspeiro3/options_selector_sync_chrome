@@ -22,5 +22,8 @@
   "clearButton": {
     "message": "Wyczyść",
     "description": "Tekst przycisku do czyszczenia pola wprowadzania."
-  }
+  },
+  "unselectedServers": {
+    "message": "NIEWYBRANE OPCJE:"
+}
 }

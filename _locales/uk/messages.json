@@ -22,5 +22,8 @@
   "clearButton": {
     "message": "Очистити",
     "description": "Текст кнопки для очищення поля вводу."
+  },
+  "unselectedServers": {
+    "message": "НЕВИБРАНІ ОПЦІЇ:"
   }
 }
