@@ -1,0 +1,26 @@
+{
+  "extensionName": {
+    "message": "OptionsSelectorSync",
+    "description": "Назва розширення."
+  },
+  "extensionDescription": {
+    "message": "Автоматизуйте вибір опцій у завданнях Jenkins за допомогою цього розширення, забезпечуючи безпомилкові налаштування шляхом миттєвої синхронізації попередньо визначених значень.",
+    "description": "Опис розширення."
+  },
+  "selectServersButton": {
+    "message": "Застосувати",
+    "description": "Текст кнопки у спливаючому вікні."
+  },
+  "textareaPlaceholder": {
+    "message": "Значення_1\nЗначення_2\nЗначення_3\n...",
+    "description": "Текст-підказка для текстового поля."
+  },
+  "descriptionText": {
+    "message": "Введіть необхідні значення нижче:",
+    "description": "Описовий текст у спливаючому вікні."
+  },
+  "clearButton": {
+    "message": "Очистити",
+    "description": "Текст кнопки для очищення поля вводу."
+  }
+}

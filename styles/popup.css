@@ -1,0 +1,39 @@
+body {
+  width: 400px;
+  height: auto;
+  margin: 10px;
+  font-family: Arial, sans-serif;
+  display: flex;
+  flex-direction: column;
+}
+#description {
+  margin-bottom:10px;
+  font-size: 16px;
+}
+#serverNames {
+  width: calc(100% - 10px);
+  height: 150px;
+  margin-bottom: 10px;
+  resize: none;
+  padding: 5px;
+  box-sizing: border-box;
+}
+#submit {
+  width: calc(100% - 10px);
+  padding: 10px 0;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 5px;
+  font-size: 16px;
+  box-sizing: border-box;
+  margin-bottom: 3px;
+}
+#clear {
+  width: calc(100% - 10px);
+  cursor: pointer;
+}
+#submit:hover {
+  background-color: #0056b3;
+}

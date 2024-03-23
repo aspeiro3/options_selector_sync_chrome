@@ -1,0 +1,26 @@
+{
+  "extensionName": {
+    "message": "OptionsSelectorSync",
+    "description": "Extension name."
+  },
+  "extensionDescription": {
+    "message": "Automate option selection in Jenkins Jobs with this extension, ensuring error-free setups by syncing predefined choices instantly.",
+    "description": "Extension description."
+  },
+  "selectServersButton": {
+    "message": "Apply",
+    "description": "Button text in the popup window."
+  },
+  "textareaPlaceholder": {
+    "message": "Value_1\nValue_2\nValue_3\n...",
+    "description": "Placeholder text for the text field."
+  },
+  "descriptionText": {
+    "message": "Enter the required values below:",
+    "description": "Descriptive text in the popup window."
+  },
+  "clearButton": {
+    "message": "Clear",
+    "description": "Button text for clearing the input field."
+  }
+}

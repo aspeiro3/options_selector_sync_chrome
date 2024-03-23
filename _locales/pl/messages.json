@@ -1,0 +1,26 @@
+{
+  "extensionName": {
+    "message": "OptionsSelectorSync",
+    "description": "Nazwa rozszerzenia."
+  },
+  "extensionDescription": {
+    "message": "Zautomatyzuj wybór opcji w zadaniach Jenkins za pomocą tego rozszerzenia, zapewniając bezbłędne konfiguracje przez natychmiastową synchronizację wybranych opcji.",
+    "description": "Opis rozszerzenia."
+  },
+  "selectServersButton": {
+    "message": "Zastosuj",
+    "description": "Tekst przycisku w oknie popup."
+  },
+  "textareaPlaceholder": {
+    "message": "Wartość_1\nWartość_2\nWartość_3\n...",
+    "description": "Tekst zastępczy dla pola tekstowego."
+  },
+  "descriptionText": {
+    "message": "Wprowadź wymagane wartości poniżej:",
+    "description": "Opisowy tekst w oknie popup."
+  },
+  "clearButton": {
+    "message": "Wyczyść",
+    "description": "Tekst przycisku do czyszczenia pola wprowadzania."
+  }
+}

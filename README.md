@@ -1,2 +1,2 @@
 # options_selector_sync_chrome
-Automate option selection in Jenkins Jobs with this extension, ensuring error-free setups by syncing predefined choices instantly.
+OptionsSelectorSync is an extension that automatically selects and synchronizes predefined options from a list on Jenkins Jobs pages. By simply passing the required list of option names in a dropdown window, OptionsSelectorSync instantly updates the <select> element on the page, marking the corresponding options as selected. This extension is ideal for automating the selection of multiple options before launching a Jenkins Job, eliminating the accidental selection of incorrect values.
