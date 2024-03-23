@@ -22,5 +22,8 @@
   "clearButton": {
     "message": "Clear",
     "description": "Button text for clearing the input field."
+  },
+  "unselectedServers": {
+    "message": "UNSELECTED OPTIONS:"
   }
 }
