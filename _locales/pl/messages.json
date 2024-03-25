@@ -12,12 +12,8 @@
     "description": "Tekst przycisku w oknie popup."
   },
   "textareaPlaceholder": {
-    "message": "Wartość_1\nWartość_2\nWartość_3\n...",
+    "message": "Wprowadź wymagane wartości:\n\nWartość_1\nWartość_2\nWartość_3\n...",
     "description": "Tekst zastępczy dla pola tekstowego."
-  },
-  "descriptionText": {
-    "message": "Wprowadź wymagane wartości poniżej:",
-    "description": "Opisowy tekst w oknie popup."
   },
   "clearButton": {
     "message": "Wyczyść",
