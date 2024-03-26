@@ -1,17 +1,13 @@
 body {
-  width: 400px;
+  width: 300px;
   height: auto;
   margin: 10px;
   font-family: Arial, sans-serif;
   display: flex;
   flex-direction: column;
 }
-#description {
-  margin-bottom:10px;
-  font-size: 16px;
-}
 #serverNames {
-  width: calc(100% - 10px);
+  width: 100%;
   height: 150px;
   margin-bottom: 10px;
   resize: none;
@@ -19,7 +15,7 @@ body {
   box-sizing: border-box;
 }
 #submit {
-  width: calc(100% - 10px);
+  width: 100%;
   padding: 10px 0;
   background-color: #007bff;
   color: white;
@@ -31,9 +27,23 @@ body {
   margin-bottom: 3px;
 }
 #clear {
-  width: calc(100% - 10px);
+  width: 100%;
   cursor: pointer;
 }
 #submit:hover {
   background-color: #0056b3;
+}
+#buttonsContainer button {
+  cursor: pointer;
+  width: 100%;
+  display: block;
+  margin-bottom: 5px;
+  box-sizing: border-box;
+}
+.active-select-button {
+  background-color: #d7dae1;
+  padding: 5px 0;
+  border-radius: 5px;
+  font-size: 14px;
+  box-sizing: border-box;
 }

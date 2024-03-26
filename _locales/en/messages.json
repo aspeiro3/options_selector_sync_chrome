@@ -12,12 +12,8 @@
     "description": "Button text in the popup window."
   },
   "textareaPlaceholder": {
-    "message": "Value_1\nValue_2\nValue_3\n...",
+    "message": "Enter the required values:\n\nValue_1\nValue_2\nValue_3\n...",
     "description": "Placeholder text for the text field."
-  },
-  "descriptionText": {
-    "message": "Enter the required values below:",
-    "description": "Descriptive text in the popup window."
   },
   "clearButton": {
     "message": "Clear",
