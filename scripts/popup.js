@@ -1,10 +1,14 @@
 let activeButton = null;
+let lastLoadedKey = null;
 let currentButtonIndex = 0;
 let buttons = document.getElementById('buttonsContainer').children;
 
 document.addEventListener('DOMContentLoaded', async function() {
   localizeUI();
   initButtons();
+  initDropdown();
+  toggleRegexVisibility();
+  updateRegexListDropdown();
   await listenForSelectButtons();
 });
 
@@ -22,6 +26,7 @@ async function fetchSelectedServers(index) {
 async function clearSelection() {
   document.getElementById("serverNames").value = '';
   updateSubmitButtonText();
+  toggleRegexVisibility();
   await sendMessageToContentScript({action: "clearSelection"});
 }
 
@@ -41,7 +46,7 @@ async function listenForSelectButtons() {
 function localizeUI() {
   document.querySelectorAll('[data-i18n]').forEach(element => {
     const message = chrome.i18n.getMessage(element.getAttribute('data-i18n'));
-    element[element.tagName === 'TEXTAREA' ? 'placeholder' : 'textContent'] = message;
+    element[element.tagName === 'TEXTAREA' || element.tagName === 'INPUT' ? 'placeholder' : 'textContent'] = message;
   });
 }
 
@@ -115,6 +120,7 @@ function updateControlPanelWithSelectInfo(response) {
     const selectedOptionsText = response.options.filter(opt => opt.selected).map(opt => opt.text).join('\n');
     serverNamesTextarea.value = selectedOptionsText;
     updateSubmitButtonText();
+    toggleRegexVisibility();
   }
 }
 
@@ -137,5 +143,182 @@ function sendMessageToContentScript(message, callback) {
         }
       }
     });
+  });
+}
+
+function toggleRegexVisibility() {
+  const serverNamesTextarea = document.getElementById("serverNames");
+  const toggleRegexButton = document.getElementById("toggleRegex");
+
+  function updateToggleRegexVisibility() {
+    toggleRegexButton.style.display = serverNamesTextarea.value.trim() ? "none" : "block";
+  }
+  updateToggleRegexVisibility();
+  serverNamesTextarea.addEventListener('input', updateToggleRegexVisibility);
+  serverNamesTextarea.addEventListener('focus', updateToggleRegexVisibility);
+  serverNamesTextarea.addEventListener('blur', updateToggleRegexVisibility);
+}
+
+document.getElementById('fetchMatches').addEventListener('click', function() {
+  const regexInput = document.getElementById('regexInput');
+  const serverNames = document.getElementById('serverNames');
+  const regexPattern = regexInput.value;
+  const regex = new RegExp(regexPattern);
+  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+    chrome.tabs.sendMessage(tabs[0].id, {action: "fetchOptionsUsingRegex", regex: regexPattern}, function(response) {
+      if (response && response.matchedOptions) {
+        const matchedOptionsText = response.matchedOptions.join('\n');
+        if (matchedOptionsText) {
+          serverNames.value = matchedOptionsText;
+          saveRegex();
+          updateSubmitButtonText();
+          toggleRegexVisibility();
+        }
+        toggleRegex();
+      }
+    });
+  });
+});
+
+function initDropdown() {
+  const dropdown = document.getElementById('savedRegexes');
+  dropdown.addEventListener('change', function() {
+    const selectedKey = dropdown.value;
+    lastLoadedKey = selectedKey;
+    loadRegex(selectedKey);
+  });
+}
+
+document.getElementById('savedRegexes').addEventListener('click', function() {
+  if (lastLoadedKey) {
+    loadRegex(lastLoadedKey);
+  }
+});
+
+function loadRegex(key) {
+  chrome.storage.local.get({ regexes: {} }, function(data) {
+    if (key in data.regexes) {
+      document.getElementById('regexTitle').value = key;
+      document.getElementById('regexInput').value = data.regexes[key];
+      updateDeleteButtonVisibility();
+    }
+  });
+}
+
+document.getElementById('regexTitle').addEventListener('input', function() {
+  const regexTitle = document.getElementById('regexTitle').value;
+  if (!regexTitle.trim()) {
+    document.getElementById('deleteRegex').style.display = 'none';
+  } else {
+    updateDeleteButtonVisibility();
+  }
+});
+
+function saveRegex() {
+  chrome.storage.local.get({ regexes: {} }, function(data) {
+    let regexes = data.regexes;
+
+    const keys = Object.keys(regexes);
+    const title = document.getElementById('regexTitle').value.trim() || `regex-${keys.length + 1}`;
+    const pattern = document.getElementById('regexInput').value.trim();
+    regexes[title] = pattern;
+    if (keys.length > 20) {
+      const oldestKey = keys.reduce((oldest, key) => !oldest || regexes[key].time < regexes[oldest].time ? key : oldest, null);
+      delete regexes[oldestKey];
+    }
+    chrome.storage.local.set({ regexes }, updateRegexListDropdown);
+  });
+}
+
+function updateRegexListDropdown() {
+  chrome.storage.local.get({ regexes: {} }, function(data) {
+    const dropdown = document.getElementById('savedRegexes');
+    dropdown.innerHTML = '';
+
+    const keys = Object.keys(data.regexes);
+    if (keys.length > 0) {
+      keys.forEach((key) => {
+        let option = document.createElement('option');
+        option.value = key;
+        option.textContent = key;
+        dropdown.appendChild(option);
+      });
+      dropdown.style.display = '';
+      dropdown.selectedIndex = 0;
+      lastLoadedKey = dropdown.value;
+    } else {
+      dropdown.style.display = 'none';
+    }
+    document.getElementById('regexTitle').value = '';
+    document.getElementById('regexInput').value = '';
+  });
+}
+
+document.getElementById('toggleRegex').addEventListener('click', function() {
+  toggleRegex();
+  updateDeleteButtonVisibility();
+});
+
+function toggleRegex() {
+  const regexControlPanel = document.getElementById('regexControlPanel');
+  const serverNames = document.getElementById('serverNames');
+  const toggleButton = document.getElementById('toggleRegex');
+  const submitButton = document.getElementById('submit');
+  const clearButton = document.getElementById('clear');
+  const selectButtons = Array.from(buttons);
+
+  if (regexControlPanel.style.display === 'none') {
+    regexControlPanel.style.display = 'block';
+    serverNames.style.display = 'none';
+    toggleButton.textContent = chrome.i18n.getMessage("toggleReturn");
+    if (selectButtons.length > 0) {
+      selectButtons.forEach((button) => {
+        button.classList.add('button-disabled');
+        button.disabled = true;
+      });
+    }
+    submitButton.classList.add('button-disabled');
+    clearButton.classList.add('button-disabled');
+    submitButton.disabled = true;
+    clearButton.disabled = true;
+  } else {
+    regexControlPanel.style.display = 'none';
+    serverNames.style.display = 'block';
+    toggleButton.textContent = chrome.i18n.getMessage("toggleRegex");
+    if (selectButtons.length > 0) {
+      selectButtons.forEach((button) => {
+        button.classList.remove('button-disabled');
+        button.disabled = false;
+      });
+    }
+    submitButton.classList.remove('button-disabled');
+    clearButton.classList.remove('button-disabled');
+    submitButton.disabled = false;
+    clearButton.disabled = false;
+  }
+}
+
+document.getElementById('deleteRegex').addEventListener('click', function() {
+  const regexTitle = document.getElementById('regexTitle').value;
+  chrome.storage.local.get({ regexes: {} }, function(data) {
+    delete data.regexes[regexTitle];
+    chrome.storage.local.set({ regexes: data.regexes }, function() {
+      updateRegexListDropdown();
+      updateDeleteButtonVisibility();
+    });
+  });
+});
+
+function updateDeleteButtonVisibility() {
+  chrome.storage.local.get({ regexes: {} }, function(data) {
+    const hasRegexes = Object.keys(data.regexes).length > 0;
+    const deleteButton = document.getElementById('deleteRegex');
+    const regexTitle = document.getElementById('regexTitle').value;
+
+    if (hasRegexes && regexTitle) {
+      deleteButton.style.display = 'block';
+    } else {
+      deleteButton.style.display = 'none';
+    }
   });
 }

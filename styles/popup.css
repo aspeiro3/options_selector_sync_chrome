@@ -6,13 +6,63 @@ body {
   display: flex;
   flex-direction: column;
 }
-#serverNames {
+#serverNamesContainer {
+  position: relative;
+  width: 100%;
+}
+#serverNames, #regexControlPanel {
   width: 100%;
   height: 150px;
   margin-bottom: 10px;
   resize: none;
   padding: 5px;
   box-sizing: border-box;
+  border: 1px solid #ccc;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  display: none;
+}
+#serverNames {
+  display: block;
+}
+#toggleRegex {
+  position: absolute;
+  right: 6px;
+  bottom: 4px;
+  cursor: pointer;
+  z-index: 10;
+  background-color: transparent;
+  border: none;
+  transition: transform 0.2s ease;
+}
+#toggleRegex:hover {
+  transform: scale(1.3);
+}
+input {
+  height: 20px;
+  margin-bottom: 5px;
+  margin-top: 5px;
+}
+#regexTitle {
+  width: 98%;
+  text-align: center;
+}
+#regexInput {
+  width: 100%;
+}
+#savedRegexes{
+  position: absolute;
+  right: 4px;
+  top: 11px;
+  cursor: pointer;
+  z-index: 10;
+  width: 17px;
+  height: 26px;
+  background-color: #d7dae1;
+  box-sizing: border-box;
+  border-radius: 3px;
+}
+#savedRegexes:hover {
+  background-color: #90c1f0;
 }
 #submit {
   width: 100%;
@@ -46,4 +96,54 @@ body {
   border-radius: 5px;
   font-size: 14px;
   box-sizing: border-box;
+}
+.icon-button {
+  background: none;
+  border: none;
+  color: #333;
+  cursor: pointer;
+  padding: 5px;
+  font-size: 16px;
+}
+.icon-button:hover {
+  color: #007bff;
+}
+.input-row {
+   display: flex;
+   justify-content: space-between;
+   align-items: center;
+ }
+.icon-button .fa {
+  transition: transform 0.2s ease;
+}
+.icon-button:hover .fa {
+  transform: scale(1.4);
+}
+.button-disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+.button-disabled:disabled {
+  pointer-events: none;
+}
+.delete-button {
+  position: absolute;
+  left: 5px;
+  top: 11px;
+  z-index: 10;
+  background-color: transparent;
+  border: none;
+  cursor: pointer;
+  color: red;
+  font-size: 16px;
+  padding: 5px;
+}
+.delete-button:hover {
+  color: darkred;
+}
+.delete-button .fa {
+  transition: transform 0.2s ease;
+}
+.delete-button:hover .fa {
+  transform: scale(1.4);
 }

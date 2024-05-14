@@ -3,17 +3,28 @@
 <head>
   <title data-i18n="extensionName">Select Servers</title>
   <link rel="stylesheet" type="text/css" href="../styles/popup.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-  <div id="buttonsContainer"></div>
-  <div id="controlPanel" style="display: none;">
-    <div id="description" data-i18n="descriptionText">
-      Select the servers from the list below:
-    </div>
+<div id="buttonsContainer"></div>
+<div id="controlPanel" style="display: none;">
+  <div id="serverNamesContainer">
     <textarea id="serverNames" data-i18n="textareaPlaceholder" placeholder=""></textarea>
-    <button id="submit" data-i18n="selectServersButton">Select Servers</button>
-    <button id="clear" data-i18n="clearButton">Clear</button>
+    <div id="regexControlPanel" style="display: none;">
+      <select id="savedRegexes"></select>
+      <input type="text" id="regexTitle" data-i18n="regexTitlePlaceholder" placeholder="">
+      <button id="deleteRegex" class="delete-button" style="display: none;"><i class="fa fa-times"></i></button>
+      <div class="input-row">
+        <input type="text" id="regexInput" data-i18n="regexInputPlaceholder" placeholder="">
+        <button id="fetchMatches" class="icon-button"><i class="fa fa-search"></i></button>
+      </div>
+    </div>
+    <button id="toggleRegex" data-i18n="toggleRegex">Regex</button>
   </div>
-  <script src="../scripts/popup.js"></script>
+  <button id="submit" data-i18n="selectServersButton">Select Servers</button>
+  <button id="clear" data-i18n="clearButton">Clear</button>
+</div>
+<script src="../scripts/popup.js"></script>
 </body>
 </html>

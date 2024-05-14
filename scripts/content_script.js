@@ -26,6 +26,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     case "getActiveSelectInfo":
       getActiveSelectInfo(sendResponse);
       break;
+    case "fetchOptionsUsingRegex":
+      const regex = new RegExp(message.regex);
+      const selectElement = document.querySelectorAll('select[multiple]')[activeSelectIndex];
+      if (!selectElement) {
+        return;
+      }
+      const options = Array.from(selectElement.options);
+      const matchedOptions = options.filter(option => regex.test(option.text)).map(option => option.value);
+      sendResponse({matchedOptions: matchedOptions});
   }
 });
 
