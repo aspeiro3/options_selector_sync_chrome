@@ -22,11 +22,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       }
       break;
     case "scrollToLastOption":
-      if (isAirflowUrl()) {
-        scrollToLastOptionAirflow();
-      } else {
-        scrollToLastOption();
-      }
+      scrollToLastOption();
       break;
     case "clearSelection":
       if (isAirflowUrl()) {
@@ -338,18 +334,26 @@ async function getActiveSelectInfoAirflow(sendResponse) {
   
   if (selectedChips.length === 0 && container) {
     selectedChips = Array.from(container.querySelectorAll('*')).filter(el => {
+      // Exclude input elements and their placeholders
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el === activeInput || el.contains(activeInput)) {
+        return false;
+      }
       const hasRemoveButton = el.querySelector('[aria-label*="Remove"], button[aria-label*="Remove"], [class*="remove"], [class*="close"], svg');
-      const hasChipClasses = el.className && (
-        el.className.includes('multiValue') || 
-        el.className.includes('chakra-tag') || 
-        el.className.includes('multi-value') || 
-        el.className.includes('tag') ||
-        el.className.includes('chip') ||
-        el.className.includes('badge')
+      const classNameStr = el.className ? String(el.className) : '';
+      const hasChipClasses = classNameStr && (
+        classNameStr.includes('multiValue') || 
+        classNameStr.includes('chakra-tag') || 
+        classNameStr.includes('multi-value') || 
+        classNameStr.includes('tag') ||
+        classNameStr.includes('chip') ||
+        classNameStr.includes('badge')
       );
       const isVisible = el.offsetParent !== null;
       const hasText = el.textContent && el.textContent.trim().length > 0;
-      return (hasRemoveButton || hasChipClasses) && isVisible && hasText;
+      // Exclude placeholder text
+      const text = el.textContent.trim();
+      const isPlaceholder = text === activeInput.placeholder || text.toLowerCase().includes('select one or multiple');
+      return (hasRemoveButton || hasChipClasses) && isVisible && hasText && !isPlaceholder;
     });
   }
   
@@ -357,18 +361,26 @@ async function getActiveSelectInfoAirflow(sendResponse) {
     const parent = activeInput.parentElement;
     if (parent) {
       selectedChips = Array.from(parent.querySelectorAll('*')).filter(el => {
+        // Exclude input elements and their placeholders
+        if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el === activeInput || el.contains(activeInput)) {
+          return false;
+        }
         const hasRemoveButton = el.querySelector('[aria-label*="Remove"], button[aria-label*="Remove"], [class*="remove"], [class*="close"], svg');
-        const hasChipClasses = el.className && (
-          el.className.includes('multiValue') || 
-          el.className.includes('chakra-tag') || 
-          el.className.includes('multi-value') || 
-          el.className.includes('tag') ||
-          el.className.includes('chip') ||
-          el.className.includes('badge')
+        const classNameStr = el.className ? String(el.className) : '';
+        const hasChipClasses = classNameStr && (
+          classNameStr.includes('multiValue') || 
+          classNameStr.includes('chakra-tag') || 
+          classNameStr.includes('multi-value') || 
+          classNameStr.includes('tag') ||
+          classNameStr.includes('chip') ||
+          classNameStr.includes('badge')
         );
         const isVisible = el.offsetParent !== null;
         const hasText = el.textContent && el.textContent.trim().length > 0;
-        return (hasRemoveButton || hasChipClasses) && isVisible && hasText;
+        // Exclude placeholder text
+        const text = el.textContent.trim();
+        const isPlaceholder = text === activeInput.placeholder || text.toLowerCase().includes('select one or multiple');
+        return (hasRemoveButton || hasChipClasses) && isVisible && hasText && !isPlaceholder;
       });
     }
   }
@@ -392,6 +404,10 @@ async function getActiveSelectInfoAirflow(sendResponse) {
       const allCandidates = [...siblings, ...Array.from(inputParent.querySelectorAll('div, span'))];
       
       selectedChips = allCandidates.filter(el => {
+        // Exclude input elements and their placeholders
+        if (el === activeInput || el.contains(activeInput)) {
+          return false;
+        }
         const text = el.textContent.trim();
         const isVisible = el.offsetParent !== null;
         const hasReasonableText = text.length > 0 && text.length < 100;
@@ -399,7 +415,9 @@ async function getActiveSelectInfoAirflow(sendResponse) {
         const hasCloseOrButton = el.querySelector('svg, button, [class*="close"], [class*="remove"]') || 
                                  el.getAttribute('role') === 'button' ||
                                  el.onclick;
-        return isVisible && hasReasonableText && isNotInput && hasCloseOrButton;
+        // Exclude placeholder text
+        const isPlaceholder = text === activeInput.placeholder || text.toLowerCase().includes('select one or multiple');
+        return isVisible && hasReasonableText && isNotInput && hasCloseOrButton && !isPlaceholder;
       }).slice(0, 20);
     }
   }
@@ -417,7 +435,12 @@ async function getActiveSelectInfoAirflow(sendResponse) {
       const text = clone.textContent.trim();
       return text;
     })
-    .filter(text => text !== null && text !== '' && text.length > 0);
+    .filter(text => {
+      if (!text || text === '' || text.length === 0) return false;
+      // Exclude placeholder text
+      const isPlaceholder = text === activeInput.placeholder || text.toLowerCase().includes('select one or multiple');
+      return !isPlaceholder;
+    });
   
   const allSelectedValues = [...selectedFromHidden, ...selectedFromChips];
   const seenValues = new Set();
