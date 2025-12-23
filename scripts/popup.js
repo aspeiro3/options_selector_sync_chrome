@@ -1,16 +1,72 @@
 let activeButton = null;
 let lastLoadedKey = null;
 let currentButtonIndex = 0;
-let buttons = document.getElementById('buttonsContainer').children;
+let buttons = null;
 
 document.addEventListener('DOMContentLoaded', async function() {
+  buttons = document.getElementById('buttonsContainer').children;
   localizeUI();
   initButtons();
   initDropdown();
   toggleRegexVisibility();
   updateRegexListDropdown();
+  initEventListeners();
   await listenForSelectButtons();
 });
+
+function initEventListeners() {
+  document.getElementById('fetchMatches').addEventListener('click', function() {
+    const regexInput = document.getElementById('regexInput');
+    const serverNames = document.getElementById('serverNames');
+    const regexPattern = regexInput.value;
+    const regex = new RegExp(regexPattern);
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      chrome.tabs.sendMessage(tabs[0].id, {action: "fetchOptionsUsingRegex", regex: regexPattern}, function(response) {
+        if (response && response.matchedOptions) {
+          const matchedOptionsText = response.matchedOptions.join('\n');
+          if (matchedOptionsText) {
+            serverNames.value = matchedOptionsText;
+            saveRegex();
+            updateSubmitButtonText();
+            toggleRegexVisibility();
+          }
+          toggleRegex();
+        }
+      });
+    });
+  });
+
+  document.getElementById('savedRegexes').addEventListener('click', function() {
+    if (lastLoadedKey) {
+      loadRegex(lastLoadedKey);
+    }
+  });
+
+  document.getElementById('regexTitle').addEventListener('input', function() {
+    const regexTitle = document.getElementById('regexTitle').value;
+    if (!regexTitle.trim()) {
+      document.getElementById('deleteRegex').style.display = 'none';
+    } else {
+      updateDeleteButtonVisibility();
+    }
+  });
+
+  document.getElementById('toggleRegex').addEventListener('click', function() {
+    toggleRegex();
+    updateDeleteButtonVisibility();
+  });
+
+  document.getElementById('deleteRegex').addEventListener('click', function() {
+    const regexTitle = document.getElementById('regexTitle').value;
+    chrome.storage.local.get({ regexes: {} }, function(data) {
+      delete data.regexes[regexTitle];
+      chrome.storage.local.set({ regexes: data.regexes }, function() {
+        updateRegexListDropdown();
+        updateDeleteButtonVisibility();
+      });
+    });
+  });
+}
 
 async function toggleControlPanel(index) {
   const controlPanel = document.getElementById('controlPanel');
@@ -32,12 +88,15 @@ async function clearSelection() {
 
 async function listenForSelectButtons() {
   await sendMessageToContentScript({action: "findMultipleSelects"}, response => {
-    if (response && response.selects) {
-      const container = document.getElementById('buttonsContainer');
+    const container = document.getElementById('buttonsContainer');
+    if (response && response.selects && response.selects.length > 0) {
       if (response.selects.length > 1) {
         response.selects.forEach((select, index) => createSelectButton(container, index, select));
         highlightActiveButton(container.firstChild);
       }
+      toggleControlPanel(0);
+    } else {
+      // Show control panel even if no selects found
       toggleControlPanel(0);
     }
   });
@@ -86,8 +145,13 @@ function highlightActiveButton(newActiveButton) {
 
 function getUnselectedServerNames(serverNames, callback) {
   sendMessageToContentScript({action: "getSelectedServers"}, function(response) {
-    const selectedServers = response.selectedServers || [];
-    const unselectedServerNames = serverNames.filter(name => !selectedServers.includes(name));
+    const selectedServers = (response && response.selectedServers) || [];
+    // Normalize values for comparison (trim and lowercase)
+    const normalizedSelected = selectedServers.map(s => s.trim().toLowerCase());
+    const unselectedServerNames = serverNames.filter(name => {
+      const normalizedName = name.trim().toLowerCase();
+      return !normalizedSelected.includes(normalizedName);
+    });
     callback(unselectedServerNames);
   });
 }
@@ -97,19 +161,22 @@ function selectServersAction() {
   const serverNames = serverNamesInput.split('\n').map(name => name.trim()).filter(name => name);
   sendMessageToContentScript({action: "selectServers", serverNames: serverNames}, function() {
     sendMessageToContentScript({action: "scrollToLastOption"}, function() {
-      getUnselectedServerNames(serverNames, function(unselectedServerNames) {
-        if (unselectedServerNames && unselectedServerNames.length > 0) {
-          alert(chrome.i18n.getMessage("unselectedServers") + "\n\n" + unselectedServerNames.join('\n'));
-        }
-        if (currentButtonIndex + 1 < buttons.length) {
-          currentButtonIndex++;
-          toggleControlPanel(currentButtonIndex);
-          highlightActiveButton(buttons[currentButtonIndex]);
-        } else {
-          window.close();
-          sendMessageToContentScript({action: "unhighlightSelect"});
-        }
-      });
+      // Minimal delay to ensure DOM is updated after selection
+      setTimeout(function() {
+        getUnselectedServerNames(serverNames, function(unselectedServerNames) {
+          if (unselectedServerNames && unselectedServerNames.length > 0) {
+            alert(chrome.i18n.getMessage("unselectedServers") + "\n\n" + unselectedServerNames.join('\n'));
+          }
+          if (buttons && currentButtonIndex + 1 < buttons.length) {
+            currentButtonIndex++;
+            toggleControlPanel(currentButtonIndex);
+            highlightActiveButton(buttons[currentButtonIndex]);
+          } else {
+            window.close();
+            sendMessageToContentScript({action: "unhighlightSelect"});
+          }
+        });
+      }, 50);
     });
   });
 }
@@ -125,23 +192,22 @@ function updateControlPanelWithSelectInfo(response) {
 }
 
 function sendMessageToContentScript(message, callback) {
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    if (!tabs.length) {
-      if (typeof callback === 'function') {
-        callback(null);
+  return new Promise((resolve) => {
+    chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
+      if (!tabs.length) {
+        const result = typeof callback === 'function' ? callback(null) : null;
+        resolve(result);
+        return;
       }
-      return;
-    }
-    chrome.tabs.sendMessage(tabs[0].id, message, function(response) {
-      if (chrome.runtime.lastError) {
-        if (typeof callback === 'function') {
-          callback(null);
+      chrome.tabs.sendMessage(tabs[0].id, message, function(response) {
+        if (chrome.runtime.lastError) {
+          const result = typeof callback === 'function' ? callback(null) : null;
+          resolve(result);
+        } else {
+          const result = typeof callback === 'function' ? callback(response) : response;
+          resolve(result);
         }
-      } else {
-        if (typeof callback === 'function') {
-          callback(response);
-        }
-      }
+      });
     });
   });
 }
@@ -159,27 +225,6 @@ function toggleRegexVisibility() {
   serverNamesTextarea.addEventListener('blur', updateToggleRegexVisibility);
 }
 
-document.getElementById('fetchMatches').addEventListener('click', function() {
-  const regexInput = document.getElementById('regexInput');
-  const serverNames = document.getElementById('serverNames');
-  const regexPattern = regexInput.value;
-  const regex = new RegExp(regexPattern);
-  chrome.tabs.query({active: true, currentWindow: true}, function(tabs) {
-    chrome.tabs.sendMessage(tabs[0].id, {action: "fetchOptionsUsingRegex", regex: regexPattern}, function(response) {
-      if (response && response.matchedOptions) {
-        const matchedOptionsText = response.matchedOptions.join('\n');
-        if (matchedOptionsText) {
-          serverNames.value = matchedOptionsText;
-          saveRegex();
-          updateSubmitButtonText();
-          toggleRegexVisibility();
-        }
-        toggleRegex();
-      }
-    });
-  });
-});
-
 function initDropdown() {
   const dropdown = document.getElementById('savedRegexes');
   dropdown.addEventListener('change', function() {
@@ -188,12 +233,6 @@ function initDropdown() {
     loadRegex(selectedKey);
   });
 }
-
-document.getElementById('savedRegexes').addEventListener('click', function() {
-  if (lastLoadedKey) {
-    loadRegex(lastLoadedKey);
-  }
-});
 
 function loadRegex(key) {
   chrome.storage.local.get({ regexes: {} }, function(data) {
@@ -204,15 +243,6 @@ function loadRegex(key) {
     }
   });
 }
-
-document.getElementById('regexTitle').addEventListener('input', function() {
-  const regexTitle = document.getElementById('regexTitle').value;
-  if (!regexTitle.trim()) {
-    document.getElementById('deleteRegex').style.display = 'none';
-  } else {
-    updateDeleteButtonVisibility();
-  }
-});
 
 function saveRegex() {
   chrome.storage.local.get({ regexes: {} }, function(data) {
@@ -254,18 +284,13 @@ function updateRegexListDropdown() {
   });
 }
 
-document.getElementById('toggleRegex').addEventListener('click', function() {
-  toggleRegex();
-  updateDeleteButtonVisibility();
-});
-
 function toggleRegex() {
   const regexControlPanel = document.getElementById('regexControlPanel');
   const serverNames = document.getElementById('serverNames');
   const toggleButton = document.getElementById('toggleRegex');
   const submitButton = document.getElementById('submit');
   const clearButton = document.getElementById('clear');
-  const selectButtons = Array.from(buttons);
+  const selectButtons = buttons ? Array.from(buttons) : [];
 
   if (regexControlPanel.style.display === 'none') {
     regexControlPanel.style.display = 'block';
@@ -298,16 +323,6 @@ function toggleRegex() {
   }
 }
 
-document.getElementById('deleteRegex').addEventListener('click', function() {
-  const regexTitle = document.getElementById('regexTitle').value;
-  chrome.storage.local.get({ regexes: {} }, function(data) {
-    delete data.regexes[regexTitle];
-    chrome.storage.local.set({ regexes: data.regexes }, function() {
-      updateRegexListDropdown();
-      updateDeleteButtonVisibility();
-    });
-  });
-});
 
 function updateDeleteButtonVisibility() {
   chrome.storage.local.get({ regexes: {} }, function(data) {
