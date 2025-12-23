@@ -301,7 +301,20 @@ async function getActiveSelectInfoAirflow(sendResponse) {
     }
   }
   
-  const selectedFromHidden = Array.from(hiddenInputs).map(input => input.value.trim()).filter(v => v);
+  // Helper function to check if text is placeholder
+  const isPlaceholderText = (text) => {
+    if (!text || !text.trim()) return false;
+    const placeholderText = activeInput.placeholder ? activeInput.placeholder.trim() : '';
+    const inputValue = activeInput.value ? activeInput.value.trim() : '';
+    // Check against both placeholder attribute and input value (in case placeholder is shown as value)
+    if (placeholderText && text.trim().toLowerCase() === placeholderText.toLowerCase()) return true;
+    if (inputValue && text.trim().toLowerCase() === inputValue.toLowerCase() && inputValue === placeholderText) return true;
+    return false;
+  };
+  
+  const selectedFromHidden = Array.from(hiddenInputs)
+    .map(input => input.value.trim())
+    .filter(v => v && !isPlaceholderText(v));
   let selectedChips = [];
   
   if (targetsList) {
@@ -311,11 +324,15 @@ async function getActiveSelectInfoAirflow(sendResponse) {
       const hasRemoveButton = span.querySelector('[aria-label*="Remove"], svg, [role="button"]');
       const isVisible = span.offsetParent !== null;
       const hasText = span.textContent.trim().length > 0;
-      return hasText && isVisible && (hasRemoveButton || hasTextSpan);
+      const text = span.textContent.trim();
+      return hasText && isVisible && (hasRemoveButton || hasTextSpan) && !isPlaceholderText(text);
     });
     
     if (selectedChips.length === 0) {
-      const chipSpansWithRemove = Array.from(targetsList.querySelectorAll('span[aria-label*="Remove"]'));
+      const chipSpansWithRemove = Array.from(targetsList.querySelectorAll('span[aria-label*="Remove"]')).filter(span => {
+        const text = span.textContent.trim();
+        return !isPlaceholderText(text);
+      });
       selectedChips = chipSpansWithRemove;
     }
     
@@ -324,7 +341,7 @@ async function getActiveSelectInfoAirflow(sendResponse) {
         const hasSvg = span.querySelector('svg');
         const text = span.textContent.trim();
         const isVisible = span.offsetParent !== null;
-        return hasSvg && text.length > 0 && text.length < 100 && isVisible;
+        return hasSvg && text.length > 0 && text.length < 100 && isVisible && !isPlaceholderText(text);
       });
       selectedChips = chipSpansWithSvg;
     }
@@ -350,10 +367,9 @@ async function getActiveSelectInfoAirflow(sendResponse) {
       );
       const isVisible = el.offsetParent !== null;
       const hasText = el.textContent && el.textContent.trim().length > 0;
-      // Exclude placeholder text
+      // Exclude placeholder text (works for any language)
       const text = el.textContent.trim();
-      const isPlaceholder = text === activeInput.placeholder || text.toLowerCase().includes('select one or multiple');
-      return (hasRemoveButton || hasChipClasses) && isVisible && hasText && !isPlaceholder;
+      return (hasRemoveButton || hasChipClasses) && isVisible && hasText && !isPlaceholderText(text);
     });
   }
   
@@ -377,10 +393,9 @@ async function getActiveSelectInfoAirflow(sendResponse) {
         );
         const isVisible = el.offsetParent !== null;
         const hasText = el.textContent && el.textContent.trim().length > 0;
-        // Exclude placeholder text
+        // Exclude placeholder text (works for any language)
         const text = el.textContent.trim();
-        const isPlaceholder = text === activeInput.placeholder || text.toLowerCase().includes('select one or multiple');
-        return (hasRemoveButton || hasChipClasses) && isVisible && hasText && !isPlaceholder;
+        return (hasRemoveButton || hasChipClasses) && isVisible && hasText && !isPlaceholderText(text);
       });
     }
   }
@@ -388,12 +403,16 @@ async function getActiveSelectInfoAirflow(sendResponse) {
   if (selectedChips.length === 0 && container) {
     const allElements = container.querySelectorAll('div, span, button');
     selectedChips = Array.from(allElements).filter(el => {
+      // Exclude input elements and their placeholders
+      if (el.tagName === 'INPUT' || el.tagName === 'TEXTAREA' || el === activeInput || el.contains(activeInput)) {
+        return false;
+      }
       const text = el.textContent.trim();
       const hasCloseIcon = el.querySelector('svg, [class*="close"], [class*="remove"], button');
       const isVisible = el.offsetParent !== null;
       const textLength = text.length;
       const isClickable = el.getAttribute('role') === 'button' || el.tagName === 'BUTTON' || el.onclick;
-      return textLength > 0 && textLength < 100 && isVisible && (hasCloseIcon || isClickable);
+      return textLength > 0 && textLength < 100 && isVisible && (hasCloseIcon || isClickable) && !isPlaceholderText(text);
     });
   }
   
@@ -415,9 +434,8 @@ async function getActiveSelectInfoAirflow(sendResponse) {
         const hasCloseOrButton = el.querySelector('svg, button, [class*="close"], [class*="remove"]') || 
                                  el.getAttribute('role') === 'button' ||
                                  el.onclick;
-        // Exclude placeholder text
-        const isPlaceholder = text === activeInput.placeholder || text.toLowerCase().includes('select one or multiple');
-        return isVisible && hasReasonableText && isNotInput && hasCloseOrButton && !isPlaceholder;
+        // Exclude placeholder text (works for any language)
+        return isVisible && hasReasonableText && isNotInput && hasCloseOrButton && !isPlaceholderText(text);
       }).slice(0, 20);
     }
   }
@@ -437,9 +455,8 @@ async function getActiveSelectInfoAirflow(sendResponse) {
     })
     .filter(text => {
       if (!text || text === '' || text.length === 0) return false;
-      // Exclude placeholder text
-      const isPlaceholder = text === activeInput.placeholder || text.toLowerCase().includes('select one or multiple');
-      return !isPlaceholder;
+      // Exclude placeholder text (works for any language)
+      return !isPlaceholderText(text);
     });
   
   const allSelectedValues = [...selectedFromHidden, ...selectedFromChips];
@@ -462,11 +479,13 @@ async function getActiveSelectInfoAirflow(sendResponse) {
   let availableOptions = [];
   
   if (originalSelectedValues.length > 0) {
-    const quickOptions = originalSelectedValues.map(text => ({
-      value: text,
-      text: text,
-      selected: true
-    }));
+    const quickOptions = originalSelectedValues
+      .filter(text => text && !isPlaceholderText(text))
+      .map(text => ({
+        value: text,
+        text: text,
+        selected: true
+      }));
     
     (async () => {
       try {
@@ -476,7 +495,8 @@ async function getActiveSelectInfoAirflow(sendResponse) {
         await new Promise(r => setTimeout(r, 300));
         
         const optionNodes = document.querySelectorAll('[role="option"], [id*="-option-"], .chakra-react-select__option');
-        availableOptions = Array.from(new Set(Array.from(optionNodes).map(el => el.textContent.trim())));
+        availableOptions = Array.from(new Set(Array.from(optionNodes).map(el => el.textContent.trim())))
+          .filter(text => text && !isPlaceholderText(text));
         
         nativeSetter.call(inputField, '');
         inputField.dispatchEvent(new Event('input', { bubbles: true }));
@@ -495,7 +515,8 @@ async function getActiveSelectInfoAirflow(sendResponse) {
     await new Promise(r => setTimeout(r, 300));
     
     const optionNodes = document.querySelectorAll('[role="option"], [id*="-option-"], .chakra-react-select__option');
-    availableOptions = Array.from(new Set(Array.from(optionNodes).map(el => el.textContent.trim())));
+    availableOptions = Array.from(new Set(Array.from(optionNodes).map(el => el.textContent.trim())))
+      .filter(text => text && !isPlaceholderText(text));
     
     nativeSetter.call(inputField, '');
     inputField.dispatchEvent(new Event('input', { bubbles: true }));
@@ -506,26 +527,30 @@ async function getActiveSelectInfoAirflow(sendResponse) {
     availableOptions = [];
   }
   
-  const options = availableOptions.map(text => {
-    const normalizedText = text.toLowerCase().trim();
-    return {
-      value: text,
-      text: text,
-      selected: selectedValues.has(normalizedText)
-    };
-  });
+  const options = availableOptions
+    .filter(text => !isPlaceholderText(text))
+    .map(text => {
+      const normalizedText = text.toLowerCase().trim();
+      return {
+        value: text,
+        text: text,
+        selected: selectedValues.has(normalizedText)
+      };
+    });
   
-  originalSelectedValues.forEach(originalText => {
-    const normalizedSelected = originalText.toLowerCase().trim();
-    const alreadyIncluded = options.some(opt => opt.text.toLowerCase().trim() === normalizedSelected);
-    if (!alreadyIncluded && originalText) {
-      options.push({
-        value: originalText,
-        text: originalText,
-        selected: true
-      });
-    }
-  });
+  originalSelectedValues
+    .filter(originalText => originalText && !isPlaceholderText(originalText))
+    .forEach(originalText => {
+      const normalizedSelected = originalText.toLowerCase().trim();
+      const alreadyIncluded = options.some(opt => opt.text.toLowerCase().trim() === normalizedSelected);
+      if (!alreadyIncluded && originalText) {
+        options.push({
+          value: originalText,
+          text: originalText,
+          selected: true
+        });
+      }
+    });
   
   sendResponse({index: activeSelectIndex, options: options});
 }
